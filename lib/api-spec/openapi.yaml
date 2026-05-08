@@ -1,0 +1,1523 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Roayti - AI-powered novel writing and reading platform API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Auth user profile
+  - name: novels
+    description: Novel management
+  - name: chapters
+    description: Chapter management
+  - name: comments
+    description: Comments on chapters
+  - name: library
+    description: User reading library
+  - name: likes
+    description: Novel likes
+  - name: follows
+    description: Author following
+  - name: ai
+    description: AI-powered writing tools
+  - name: gemini
+    description: Gemini AI chat and image operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+    put:
+      operationId: updateMe
+      tags: [auth]
+      summary: Update current user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /auth/users/{userId}:
+    get:
+      operationId: getUserProfile
+      tags: [auth]
+      summary: Get public user profile
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "404":
+          description: Not found
+
+  /novels:
+    get:
+      operationId: listNovels
+      tags: [novels]
+      summary: List published novels
+      parameters:
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [latest, trending, top_rated]
+        - name: genre
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of novels
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NovelList"
+    post:
+      operationId: createNovel
+      tags: [novels]
+      summary: Create a new novel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateNovelBody"
+      responses:
+        "201":
+          description: Created novel
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Novel"
+
+  /novels/my:
+    get:
+      operationId: listMyNovels
+      tags: [novels]
+      summary: List current user's novels
+      responses:
+        "200":
+          description: List of novels
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Novel"
+
+  /novels/stats:
+    get:
+      operationId: getNovelStats
+      tags: [novels]
+      summary: Get platform stats (total novels, authors, reads)
+      responses:
+        "200":
+          description: Platform statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformStats"
+
+  /novels/{novelId}:
+    get:
+      operationId: getNovel
+      tags: [novels]
+      summary: Get a novel by ID
+      parameters:
+        - name: novelId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Novel
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NovelDetail"
+        "404":
+          description: Not found
+    put:
+      operationId: updateNovel
+      tags: [novels]
+      summary: Update a novel
+      parameters:
+        - name: novelId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateNovelBody"
+      responses:
+        "200":
+          description: Updated novel
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Novel"
+    delete:
+      operationId: deleteNovel
+      tags: [novels]
+      summary: Delete a novel
+      parameters:
+        - name: novelId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /novels/{novelId}/publish:
+    post:
+      operationId: publishNovel
+      tags: [novels]
+      summary: Publish a draft novel
+      parameters:
+        - name: novelId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Published novel
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Novel"
+
+  /novels/{novelId}/chapters:
+    get:
+      operationId: listChapters
+      tags: [chapters]
+      summary: List chapters of a novel
+      parameters:
+        - name: novelId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Chapters
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Chapter"
+    post:
+      operationId: createChapter
+      tags: [chapters]
+      summary: Create a new chapter
+      parameters:
+        - name: novelId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateChapterBody"
+      responses:
+        "201":
+          description: Created chapter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Chapter"
+
+  /novels/{novelId}/chapters/{chapterId}:
+    get:
+      operationId: getChapter
+      tags: [chapters]
+      summary: Get a chapter
+      parameters:
+        - name: novelId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: chapterId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Chapter with comments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChapterDetail"
+    put:
+      operationId: updateChapter
+      tags: [chapters]
+      summary: Update a chapter
+      parameters:
+        - name: novelId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: chapterId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateChapterBody"
+      responses:
+        "200":
+          description: Updated chapter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Chapter"
+    delete:
+      operationId: deleteChapter
+      tags: [chapters]
+      summary: Delete a chapter
+      parameters:
+        - name: novelId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: chapterId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /novels/{novelId}/chapters/{chapterId}/comments:
+    get:
+      operationId: listComments
+      tags: [comments]
+      summary: List comments on a chapter
+      parameters:
+        - name: novelId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: chapterId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+    post:
+      operationId: createComment
+      tags: [comments]
+      summary: Post a comment on a chapter
+      parameters:
+        - name: novelId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: chapterId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCommentBody"
+      responses:
+        "201":
+          description: Created comment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+
+  /novels/{novelId}/like:
+    post:
+      operationId: toggleLike
+      tags: [likes]
+      summary: Toggle like on a novel
+      parameters:
+        - name: novelId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Like status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikeStatus"
+
+  /library:
+    get:
+      operationId: getLibrary
+      tags: [library]
+      summary: Get user's reading library
+      responses:
+        "200":
+          description: Library items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LibraryItem"
+
+  /library/{novelId}:
+    post:
+      operationId: addToLibrary
+      tags: [library]
+      summary: Add novel to library
+      parameters:
+        - name: novelId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LibraryItem"
+    delete:
+      operationId: removeFromLibrary
+      tags: [library]
+      summary: Remove novel from library
+      parameters:
+        - name: novelId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Removed
+
+  /library/{novelId}/progress:
+    put:
+      operationId: updateReadingProgress
+      tags: [library]
+      summary: Update reading progress
+      parameters:
+        - name: novelId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProgressBody"
+      responses:
+        "200":
+          description: Updated progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LibraryItem"
+
+  /follows/{userId}:
+    post:
+      operationId: followUser
+      tags: [follows]
+      summary: Follow an author
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Follow status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowStatus"
+    delete:
+      operationId: unfollowUser
+      tags: [follows]
+      summary: Unfollow an author
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Unfollowed
+
+  /ai/generate-outline:
+    post:
+      operationId: generateOutline
+      tags: [ai]
+      summary: Generate novel outline from idea
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateOutlineBody"
+      responses:
+        "200":
+          description: Generated outline
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedOutline"
+
+  /ai/generate-plot:
+    post:
+      operationId: generatePlot
+      tags: [ai]
+      summary: Generate detailed plot from idea
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GeneratePlotBody"
+      responses:
+        "200":
+          description: Generated plot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedText"
+
+  /ai/generate-chapter:
+    post:
+      operationId: generateChapter
+      tags: [ai]
+      summary: Generate a chapter from outline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateChapterBody"
+      responses:
+        "200":
+          description: Generated chapter content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedText"
+
+  /ai/improve-text:
+    post:
+      operationId: improveText
+      tags: [ai]
+      summary: Improve, rewrite, or proofread text
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImproveTextBody"
+      responses:
+        "200":
+          description: Improved text
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedText"
+
+  /ai/generate-description:
+    post:
+      operationId: generateDescription
+      tags: [ai]
+      summary: Generate novel or chapter description
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateDescriptionBody"
+      responses:
+        "200":
+          description: Generated description
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedText"
+
+  /ai/generate-cover-prompt:
+    post:
+      operationId: generateCoverPrompt
+      tags: [ai]
+      summary: Generate cover image prompt for a novel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateCoverPromptBody"
+      responses:
+        "200":
+          description: Cover image generation prompt + base64 image
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedCover"
+
+  /ai/quota:
+    get:
+      operationId: getAiQuota
+      tags: [ai]
+      summary: Get current user's daily AI quota
+      responses:
+        "200":
+          description: Quota status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiQuota"
+
+  /gemini/conversations:
+    get:
+      operationId: listGeminiConversations
+      tags: [gemini]
+      summary: List all conversations
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GeminiConversation"
+    post:
+      operationId: createGeminiConversation
+      tags: [gemini]
+      summary: Create a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGeminiConversationBody"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeminiConversation"
+
+  /gemini/conversations/{id}:
+    get:
+      operationId: getGeminiConversation
+      tags: [gemini]
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeminiConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeminiError"
+    delete:
+      operationId: deleteGeminiConversation
+      tags: [gemini]
+      summary: Delete a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeminiError"
+
+  /gemini/conversations/{id}/messages:
+    get:
+      operationId: listGeminiMessages
+      tags: [gemini]
+      summary: List messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GeminiMessage"
+    post:
+      operationId: sendGeminiMessage
+      tags: [gemini]
+      summary: Send a message and receive an AI response (SSE stream)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendGeminiMessageBody"
+      responses:
+        "200":
+          description: SSE stream of assistant response chunks
+          content:
+            text/event-stream: {}
+
+  /gemini/generate-image:
+    post:
+      operationId: generateGeminiImage
+      tags: [gemini]
+      summary: Generate an image from a text prompt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateGeminiImageBody"
+      responses:
+        "200":
+          description: Generated image data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateGeminiImageResponse"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        clerkId:
+          type: string
+        displayName:
+          type: string
+        email:
+          type: string
+        photoURL:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        followersCount:
+          type: integer
+        followingCount:
+          type: integer
+        novelsCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - clerkId
+        - displayName
+        - email
+        - followersCount
+        - followingCount
+        - novelsCount
+        - createdAt
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        clerkId:
+          type: string
+        displayName:
+          type: string
+        photoURL:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        followersCount:
+          type: integer
+        followingCount:
+          type: integer
+        novelsCount:
+          type: integer
+        isFollowing:
+          type: boolean
+        novels:
+          type: array
+          items:
+            $ref: "#/components/schemas/Novel"
+      required:
+        - id
+        - clerkId
+        - displayName
+        - followersCount
+        - followingCount
+        - novelsCount
+        - isFollowing
+        - novels
+
+    UpdateUserBody:
+      type: object
+      properties:
+        displayName:
+          type: string
+        bio:
+          type: string
+        photoURL:
+          type: string
+
+    Novel:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        summary:
+          type: string
+          nullable: true
+        genre:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [draft, published]
+        authorId:
+          type: integer
+        authorClerkId:
+          type: string
+        authorName:
+          type: string
+        coverImage:
+          type: string
+          nullable: true
+        likesCount:
+          type: integer
+        viewsCount:
+          type: integer
+        chaptersCount:
+          type: integer
+        isLiked:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - status
+        - authorId
+        - authorClerkId
+        - authorName
+        - likesCount
+        - viewsCount
+        - chaptersCount
+        - isLiked
+        - createdAt
+        - updatedAt
+
+    NovelDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        summary:
+          type: string
+          nullable: true
+        genre:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [draft, published]
+        authorId:
+          type: integer
+        authorClerkId:
+          type: string
+        authorName:
+          type: string
+        authorPhoto:
+          type: string
+          nullable: true
+        coverImage:
+          type: string
+          nullable: true
+        likesCount:
+          type: integer
+        viewsCount:
+          type: integer
+        isLiked:
+          type: boolean
+        inLibrary:
+          type: boolean
+        readingProgress:
+          type: integer
+          nullable: true
+        chapters:
+          type: array
+          items:
+            $ref: "#/components/schemas/Chapter"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - status
+        - authorId
+        - authorClerkId
+        - authorName
+        - likesCount
+        - viewsCount
+        - isLiked
+        - inLibrary
+        - chapters
+        - createdAt
+        - updatedAt
+
+    NovelList:
+      type: object
+      properties:
+        novels:
+          type: array
+          items:
+            $ref: "#/components/schemas/Novel"
+        total:
+          type: integer
+      required:
+        - novels
+        - total
+
+    CreateNovelBody:
+      type: object
+      properties:
+        title:
+          type: string
+        summary:
+          type: string
+        genre:
+          type: string
+        coverImage:
+          type: string
+      required:
+        - title
+
+    UpdateNovelBody:
+      type: object
+      properties:
+        title:
+          type: string
+        summary:
+          type: string
+        genre:
+          type: string
+        coverImage:
+          type: string
+        status:
+          type: string
+          enum: [draft, published]
+
+    PlatformStats:
+      type: object
+      properties:
+        totalNovels:
+          type: integer
+        totalAuthors:
+          type: integer
+        totalReads:
+          type: integer
+        totalChapters:
+          type: integer
+      required:
+        - totalNovels
+        - totalAuthors
+        - totalReads
+        - totalChapters
+
+    Chapter:
+      type: object
+      properties:
+        id:
+          type: integer
+        novelId:
+          type: integer
+        title:
+          type: string
+        order:
+          type: integer
+        wordCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - novelId
+        - title
+        - order
+        - wordCount
+        - createdAt
+        - updatedAt
+
+    ChapterDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        novelId:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        order:
+          type: integer
+        wordCount:
+          type: integer
+        comments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Comment"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - novelId
+        - title
+        - content
+        - order
+        - wordCount
+        - comments
+        - createdAt
+        - updatedAt
+
+    CreateChapterBody:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        order:
+          type: integer
+      required:
+        - title
+        - content
+
+    UpdateChapterBody:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        order:
+          type: integer
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+        chapterId:
+          type: integer
+        userId:
+          type: integer
+        userClerkId:
+          type: string
+        userName:
+          type: string
+        userPhoto:
+          type: string
+          nullable: true
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - chapterId
+        - userId
+        - userClerkId
+        - userName
+        - content
+        - createdAt
+
+    CreateCommentBody:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+
+    LikeStatus:
+      type: object
+      properties:
+        liked:
+          type: boolean
+        likesCount:
+          type: integer
+      required:
+        - liked
+        - likesCount
+
+    LibraryItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        novelId:
+          type: integer
+        novel:
+          $ref: "#/components/schemas/Novel"
+        lastReadChapterId:
+          type: integer
+          nullable: true
+        progress:
+          type: integer
+        addedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - novelId
+        - novel
+        - progress
+        - addedAt
+
+    UpdateProgressBody:
+      type: object
+      properties:
+        lastReadChapterId:
+          type: integer
+        progress:
+          type: integer
+      required:
+        - progress
+
+    FollowStatus:
+      type: object
+      properties:
+        following:
+          type: boolean
+        followersCount:
+          type: integer
+      required:
+        - following
+        - followersCount
+
+    GenerateOutlineBody:
+      type: object
+      properties:
+        idea:
+          type: string
+        genre:
+          type: string
+        language:
+          type: string
+          enum: [ar, en]
+      required:
+        - idea
+
+    GeneratedOutline:
+      type: object
+      properties:
+        title:
+          type: string
+        summary:
+          type: string
+        chapters:
+          type: array
+          items:
+            type: object
+            properties:
+              order:
+                type: integer
+              title:
+                type: string
+              summary:
+                type: string
+            required:
+              - order
+              - title
+              - summary
+      required:
+        - title
+        - summary
+        - chapters
+
+    GeneratePlotBody:
+      type: object
+      properties:
+        idea:
+          type: string
+        genre:
+          type: string
+        language:
+          type: string
+          enum: [ar, en]
+      required:
+        - idea
+
+    GenerateChapterBody:
+      type: object
+      properties:
+        novelTitle:
+          type: string
+        chapterTitle:
+          type: string
+        chapterSummary:
+          type: string
+        previousChapterSummary:
+          type: string
+        genre:
+          type: string
+        language:
+          type: string
+          enum: [ar, en]
+      required:
+        - novelTitle
+        - chapterTitle
+
+    ImproveTextBody:
+      type: object
+      properties:
+        text:
+          type: string
+        mode:
+          type: string
+          enum: [improve, rewrite, proofread, shorten, expand]
+        language:
+          type: string
+          enum: [ar, en]
+      required:
+        - text
+        - mode
+
+    GenerateDescriptionBody:
+      type: object
+      properties:
+        title:
+          type: string
+        genre:
+          type: string
+        outline:
+          type: string
+        language:
+          type: string
+          enum: [ar, en]
+      required:
+        - title
+
+    GenerateCoverPromptBody:
+      type: object
+      properties:
+        title:
+          type: string
+        genre:
+          type: string
+        summary:
+          type: string
+        language:
+          type: string
+          enum: [ar, en]
+      required:
+        - title
+
+    GeneratedText:
+      type: object
+      properties:
+        text:
+          type: string
+        remainingQuota:
+          type: integer
+      required:
+        - text
+        - remainingQuota
+
+    GeneratedCover:
+      type: object
+      properties:
+        prompt:
+          type: string
+        b64_json:
+          type: string
+        mimeType:
+          type: string
+        remainingQuota:
+          type: integer
+      required:
+        - prompt
+        - b64_json
+        - mimeType
+        - remainingQuota
+
+    AiQuota:
+      type: object
+      properties:
+        used:
+          type: integer
+        limit:
+          type: integer
+        remaining:
+          type: integer
+        resetsAt:
+          type: string
+          format: date-time
+      required:
+        - used
+        - limit
+        - remaining
+        - resetsAt
+
+    GeminiConversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - createdAt
+
+    GeminiMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - createdAt
+
+    CreateGeminiConversationBody:
+      type: object
+      properties:
+        title:
+          type: string
+      required:
+        - title
+
+    SendGeminiMessageBody:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+
+    GeminiConversationWithMessages:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/GeminiMessage"
+      required:
+        - id
+        - title
+        - createdAt
+        - messages
+
+    GenerateGeminiImageBody:
+      type: object
+      properties:
+        prompt:
+          type: string
+      required:
+        - prompt
+
+    GenerateGeminiImageResponse:
+      type: object
+      properties:
+        b64_json:
+          type: string
+        mimeType:
+          type: string
+      required:
+        - b64_json
+        - mimeType
+
+    GeminiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
